@@ -37,4 +37,8 @@ public class AppService {
             botPool.remove(group.getGroupId());
         }
     }
+
+    public BotClient getBotByGroupId(Integer groupId) {
+        return botPool.get(groupId);
+    }
 }

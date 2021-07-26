@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 @Component
@@ -24,6 +23,7 @@ public class BotClient implements Runnable {
     private GroupActor groupActor;
     private Random random = new Random();
     private boolean isRunning;
+    private Integer ts;
 
     public BotClient(BotService botService) {
         this.botService = botService;
@@ -46,37 +46,34 @@ public class BotClient implements Runnable {
     }
 
     private void readLongPoolHistory() throws ClientException, ApiException, InterruptedException {
-        Integer ts = vkApiClient.messages().getLongPollServer(groupActor).execute().getTs();
-
+        increaseTs();
         while (isRunning) {
             MessagesGetLongPollHistoryQuery historyQuery = vkApiClient.messages().getLongPollHistory(groupActor).ts(ts);
             List<Message> messages = historyQuery.execute().getMessages().getItems();
             if (!messages.isEmpty()) {
-                processMessages(messages);
+                botService.processMessages(groupActor.getGroupId(), messages);
             }
-            ts = vkApiClient.messages().getLongPollServer(groupActor).execute().getTs();
+            increaseTs();
             Thread.sleep(100);
         }
     }
 
-    private void processMessages(List<Message> messages) throws ClientException, ApiException {
-        Map<Integer, String> result = botService.processMessages(messages);
-        for (Map.Entry<Integer, String> answer : result.entrySet()) {
-            sendMessage(answer.getKey(), answer.getValue());
-        }
-    }
-
-    private void sendMessage(Integer userId, String text) throws ClientException, ApiException {
+    public void sendMessage(Integer userId, String text) throws ClientException, ApiException, InterruptedException {
         vkApiClient.messages()
                 .send(groupActor)
                 .message(text)
                 .userId(userId)
                 .randomId(random.nextInt(10000))
                 .execute();
+        increaseTs();
     }
 
     private void setRunning(boolean running) {
         isRunning = running;
+    }
+
+    private void increaseTs() throws ClientException, ApiException {
+        ts = vkApiClient.messages().getLongPollServer(groupActor).execute().getTs();
     }
 }
 
