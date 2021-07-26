@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class KafkaConsumer {
 
-    private AppService appService;
+    private final AppService appService;
 
     public KafkaConsumer(AppService appService) {
         this.appService = appService;
